@@ -1,8 +1,12 @@
 import pygame
-import random
+import numpy as np
 
+MAP_SIZE = 2000
 PLAYER_SIZE = 20
-PLAYER_VELOCITY = 3
+PLAYER_VELOCITY = 6
+
+PLAYER_COLOR = (255, 219, 172)
+BACKGROUND_COLOR = (161, 222, 100)
 
 
 class Player():
@@ -10,45 +14,105 @@ class Player():
         
         self.id = Id
         self.x, self.y = x, y
-        self.color = (random.randint(0, 255), random.randint(0, 255), random.randint(0, 255))
         
     def draw(self, window, camera_offset):
-        pygame.draw.circle(window, self.color, (self.x - camera_offset[0], self.y - camera_offset[1]), PLAYER_SIZE)
+        # body
+        pygame.draw.circle(window, PLAYER_COLOR, (self.x - camera_offset[0], self.y - camera_offset[1]), PLAYER_SIZE)
+        pygame.draw.circle(window, (0, 0, 0), (self.x - camera_offset[0], self.y - camera_offset[1]), PLAYER_SIZE, 1)
         
-    def move(self):
+        # hands
+        pygame.draw.circle(window, PLAYER_COLOR, (self.x + PLAYER_SIZE - 2 - camera_offset[0], self.y + PLAYER_SIZE - 2 - camera_offset[1]), PLAYER_SIZE // 2)
+        pygame.draw.circle(window, PLAYER_COLOR, (self.x - PLAYER_SIZE + 2 - camera_offset[0], self.y + PLAYER_SIZE - 2 - camera_offset[1]), PLAYER_SIZE // 2)
+        pygame.draw.circle(window, (0, 0, 0), (self.x + PLAYER_SIZE - 2 - camera_offset[0], self.y + PLAYER_SIZE - 2 - camera_offset[1]), PLAYER_SIZE // 2, 1)
+        pygame.draw.circle(window, (0, 0, 0), (self.x - PLAYER_SIZE + 2 - camera_offset[0], self.y + PLAYER_SIZE - 2 - camera_offset[1]), PLAYER_SIZE // 2, 1)
+            
+    def move(self, players, walls):
         keys = pygame.key.get_pressed()
         
         if keys[pygame.K_LEFT]:
-            self.x -= PLAYER_VELOCITY
+            temp = self.x - PLAYER_VELOCITY
+            if not ((detect_wall_collision(temp, self.y, walls)) or (detect_players_collision(temp, self.y, self.id, players))):
+                self.x = temp
             
         if keys[pygame.K_RIGHT]:
-            self.x += PLAYER_VELOCITY
+            temp = self.x + PLAYER_VELOCITY
+            if not ((detect_wall_collision(temp, self.y, walls)) or (detect_players_collision(temp, self.y, self.id, players))):
+                self.x = temp
             
         if keys[pygame.K_UP]:
-            self.y -= PLAYER_VELOCITY
+            temp = self.y - PLAYER_VELOCITY
+            if not ((detect_wall_collision(self.x, temp, walls)) or (detect_players_collision(self.x, temp, self.id, players))):
+                self.y = temp
             
         if keys[pygame.K_DOWN]:
-            self.y += PLAYER_VELOCITY
+            temp = self.y + PLAYER_VELOCITY
+            if not ((detect_wall_collision(self.x, temp, walls)) or (detect_players_collision(self.x, temp, self.id, players))):
+                self.y = temp
         
 
 class Battle_field():
     
-    def draw(self, window, camera_offset):
-        window.fill((255, 255, 255))
-        pygame.draw.line(window, (0, 0, 0), (100 - camera_offset[0], 100 - camera_offset[1]), (100 - camera_offset[0], 300 - camera_offset[1]), 3)
-        pygame.draw.line(window, (0, 0, 0), (100 - camera_offset[0], 100 - camera_offset[1]), (300 - camera_offset[0], 100 - camera_offset[1]), 3)
+    def __init__(self):
+        self.walls = []
         
-        pygame.draw.line(window, (0, 0, 0), (600 - camera_offset[0], 600 - camera_offset[1]), (600 - camera_offset[0], 800 - camera_offset[1]), 3)
-        pygame.draw.line(window, (0, 0, 0), (600 - camera_offset[0], 600 - camera_offset[1]), (800 - camera_offset[0], 600 - camera_offset[1]), 3)
-       
-       
-# return array index for player with a given id 
-def index_for_player(id, players_array):
-    
-    for index, player in enumerate(players_array):
-        if(player.id == id):
-            return index
-    
-    return -1 
+        # map borders
+        self.walls.append(((0, 0), (0, MAP_SIZE)))
+        self.walls.append(((0, 0), (MAP_SIZE, 0)))
+        
+        self.walls.append(((MAP_SIZE, MAP_SIZE), (MAP_SIZE, 0)))
+        self.walls.append(((MAP_SIZE, MAP_SIZE), (0, MAP_SIZE)))
+        
+    def draw(self, window, camera_offset):
+        window.fill(BACKGROUND_COLOR)
+        
+        for wall in self.walls:
+            pygame.draw.line(window, (0, 0, 0), (wall[0][0] - camera_offset[0], wall[0][1] - camera_offset[1]), 
+                             (wall[1][0] - camera_offset[0], wall[1][1] - camera_offset[1]), 5)
         
 
+def object_collistion(p1, p2, tollerance):
+    en = np.array([p1[0], p1[1]])
+    ms = np.array([p2[0], p2[1]])
+
+    distance = np.linalg.norm(en - ms)
+    if(distance < tollerance):
+        return True
+    return False  
+
+
+# p1 and p2 create a line
+def line_collision(p1, p2, p3, tollerance):
+    distance = np.linalg.norm(np.cross(np.asarray(p2) - np.asarray(p1), np.asarray(p1) - np.asarray(p3))) / np.linalg.norm(np.asarray(p2) - np.asarray(p1))
+
+    if(distance < tollerance):
+        return True
+    
+    return False
+
+
+def detect_players_collision(x, y, my_id, players):
+    for player in players.values():
+        if player.id == my_id:
+            continue
+        elif(object_collistion((x, y), (player.x, player.y), PLAYER_SIZE * 2 - 1)):
+            return True
+        
+    return False
+
+
+def detect_wall_collision(x, y, walls):
+    for wall in walls:
+        if(line_collision(wall[0], wall[1], (x, y), PLAYER_SIZE - 1) is True):
+            return True
+        
+    return False
+
+
+def detect_bullet_hit(player, bullets, players):
+    hits = 0
+    for bullet in bullets:
+        if(object_collistion((bullet.x, bullet.y), (player.x, player.y), PLAYER_SIZE - 1)):
+            bullet.explode()
+            hits += 1
+        
+    return hits

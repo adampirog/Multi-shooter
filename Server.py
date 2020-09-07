@@ -2,10 +2,11 @@ import socket
 import pickle
 import random
 import threading
-from Classes import Player, index_for_player
+from Classes import Player
+from Network import PACKAGE_SIZE
 
 
-players = []
+players = {}
 players_lock = threading.Lock()
 
 
@@ -14,7 +15,7 @@ def add_new_player():
     
     with players_lock:
         new_id = len(players)
-        players.append(Player(new_id, random.randint(100, 400), random.randint(100, 400)))
+        players[new_id] = (Player(new_id, random.randint(100, 400), random.randint(100, 400)))
         players_copy = players
         
     return new_id, players_copy
@@ -24,18 +25,17 @@ def client_thread_function(connection):
     global players
     
     my_id, reply = add_new_player()
-    connection.send(pickle.dumps([my_id, reply], protocol=pickle.HIGHEST_PROTOCOL))
+    connection.send(pickle.dumps((my_id, reply), protocol=pickle.HIGHEST_PROTOCOL))
     
     while True:
         try:
-            raw_data = connection.recv(2048)
+            raw_data = connection.recv(PACKAGE_SIZE)
             if(not raw_data):
                 break
             
             data = pickle.loads(raw_data)
             
             with players_lock:
-                my_id = index_for_player(data[0], players)
                 players[my_id] = data[1]
                 reply = players
                 
@@ -46,7 +46,7 @@ def client_thread_function(connection):
         
     print("Player disconnected")
     with players_lock:
-        players.pop(index_for_player(my_id, players))
+        players.pop(my_id)
 
     connection.close()
 

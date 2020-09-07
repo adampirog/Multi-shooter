@@ -1,7 +1,7 @@
 import sys
 import pygame
 from Network import Network
-from Classes import Battle_field, index_for_player
+from Classes import Battle_field
 
 # constants
 
@@ -9,15 +9,17 @@ WINDOW_WIDTH = 1000
 WINDOW_HEIGHT = 800
 
 #variables
-players = []
+players = {}
 battle_field = Battle_field()
 camera_offset = [0, 0]
 
 
 def redrawWindow(window):
     battle_field.draw(window, camera_offset)
-    for player in players:
+    
+    for player in players.values():
         player.draw(window, camera_offset)
+        
     pygame.display.update()
     
 
@@ -30,12 +32,11 @@ def main():
     data = network.connect()
     
     if(not data):
-        print("Server capactiy reached.\nExiting")
+        print("Server connection failed.\nExiting")
         sys.exit(0)
     
     my_id = data[0]
     players = data[1]
-    previous_no_players = len(players)
     
     pygame.init()
     window = pygame.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT))
@@ -43,11 +44,8 @@ def main():
     pygame.display.set_caption("Client")
      
     while run:
-        clock.tick(60)
-        players = network.send([my_id, players[my_id]])
-        if(len(players) != previous_no_players):
-            my_id = index_for_player(my_id, players)
-            previous_no_players = len(players)
+        clock.tick(30)
+        players = network.send((my_id, players[my_id]))
             
         camera_offset[0] += (players[my_id].x - camera_offset[0] - 500) // 15
         camera_offset[1] += (players[my_id].y - camera_offset[1] - 400) // 15
@@ -56,7 +54,7 @@ def main():
             if event.type == pygame.QUIT:
                 run = False
         
-        players[my_id].move()
+        players[my_id].move(players, battle_field.walls)
         redrawWindow(window)
 
 

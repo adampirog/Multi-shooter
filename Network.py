@@ -1,6 +1,8 @@
 import socket
 import pickle
 
+PACKAGE_SIZE = 2048
+
 
 class Network:
     def __init__(self):
@@ -14,7 +16,7 @@ class Network:
     def connect(self):
         try:
             self.client.connect(self.addr)
-            return_message = self.client.recv(2048)
+            return_message = self.client.recv(PACKAGE_SIZE)
             if(return_message):
                 return pickle.loads(return_message)
             else:
@@ -25,7 +27,7 @@ class Network:
     def send(self, data):
         try:
             self.client.send(pickle.dumps(data, protocol=pickle.HIGHEST_PROTOCOL))
-            return_message = self.client.recv(2048)
+            return_message = self.client.recv(PACKAGE_SIZE)
             if(return_message):
                 return pickle.loads(return_message)
             else:

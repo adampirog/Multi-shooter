@@ -1,7 +1,8 @@
 import sys
 import pygame
+import numpy as np
 from Network import Network
-from Classes import Battle_field
+from Weapons import Battle_field
 
 # constants
 
@@ -42,19 +43,30 @@ def main():
     window = pygame.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT))
     clock = pygame.time.Clock()
     pygame.display.set_caption("Client")
-     
+    pygame.mouse.set_cursor(*pygame.cursors.broken_x)
+    
+    mouse_pos = pygame.mouse.get_pos()
+    delta_x = mouse_pos[0] - (WINDOW_WIDTH // 2)
+    delta_y = (WINDOW_HEIGHT // 2) - mouse_pos[1]
+    players[my_id].angle = np.arctan2(delta_x, delta_y)
+
     while run:
         clock.tick(30)
         players = network.send((my_id, players[my_id]))
             
-        camera_offset[0] += (players[my_id].x - camera_offset[0] - 500) // 15
-        camera_offset[1] += (players[my_id].y - camera_offset[1] - 400) // 15
+        camera_offset[0] += (players[my_id].x - camera_offset[0] - (WINDOW_WIDTH // 2))  # // 15
+        camera_offset[1] += (players[my_id].y - camera_offset[1] - (WINDOW_HEIGHT // 2))  # // 15
                 
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 run = False
+            if event.type == pygame.MOUSEMOTION:
+                mouse_pos = pygame.mouse.get_pos()
+                delta_x = mouse_pos[0] - (WINDOW_WIDTH // 2)
+                delta_y = (WINDOW_HEIGHT // 2) - mouse_pos[1]
+                players[my_id].angle = np.arctan2(delta_x, delta_y)
         
-        players[my_id].move(players, battle_field.walls)
+        players[my_id].move(players, battle_field.walls, window, camera_offset)
         redrawWindow(window)
 
 

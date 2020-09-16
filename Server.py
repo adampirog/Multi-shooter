@@ -2,7 +2,7 @@ import socket
 import pickle
 import random
 import threading
-from Classes import Player
+from Player import Player
 from Network import PACKAGE_SIZE
 
 

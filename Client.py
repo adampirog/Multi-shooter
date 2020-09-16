@@ -3,6 +3,7 @@ import pygame
 import numpy as np
 from Network import Network
 from Weapons import Battle_field, WINDOW_WIDTH, WINDOW_HEIGHT
+from Player import detect_bullet_collision
 # constants
 
 #variables
@@ -64,7 +65,7 @@ def main():
                 players[my_id].angle = np.arctan2(delta_x, delta_y)
                 
         players[my_id].move(players, battle_field.walls, window, camera_offset)
-        
+        detect_bullet_collision(players, battle_field.walls)
         redrawWindow(window, my_id)
 
 

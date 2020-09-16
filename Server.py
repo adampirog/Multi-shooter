@@ -2,14 +2,12 @@ import socket
 import pickle
 import random
 import threading
-from Player import Player, detect_bullet_collision
+from Player import Player
 from Network import PACKAGE_SIZE
-from Weapons import Battle_field
 
 
 players = {}
 players_lock = threading.Lock()
-battle_field = Battle_field()
 
 
 def add_new_player():
@@ -40,7 +38,6 @@ def client_thread_function(connection):
             with players_lock:
                 players[my_id] = data[1]
                 reply = players
-                detect_bullet_collision(players, battle_field.walls)
                 
             connection.sendall(pickle.dumps(reply, protocol=pickle.HIGHEST_PROTOCOL))
         

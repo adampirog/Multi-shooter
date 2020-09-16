@@ -77,22 +77,22 @@ class Player():
         keys = pygame.key.get_pressed()
         mouse_keys = pygame.mouse.get_pressed()
         
-        if keys[pygame.K_LEFT]:
+        if keys[pygame.K_LEFT] or keys[pygame.K_a]:
             temp = self.x - PLAYER_VELOCITY
             if not ((detect_wall_collision(temp, self.y, walls)) or (detect_players_collision(temp, self.y, self.id, players))):
                 self.x = temp
             
-        if keys[pygame.K_RIGHT]:
+        if keys[pygame.K_RIGHT] or keys[pygame.K_d]:
             temp = self.x + PLAYER_VELOCITY
             if not ((detect_wall_collision(temp, self.y, walls)) or (detect_players_collision(temp, self.y, self.id, players))):
                 self.x = temp
             
-        if keys[pygame.K_UP]:
+        if keys[pygame.K_UP] or keys[pygame.K_w]:
             temp = self.y - PLAYER_VELOCITY
             if not ((detect_wall_collision(self.x, temp, walls)) or (detect_players_collision(self.x, temp, self.id, players))):
                 self.y = temp
             
-        if keys[pygame.K_DOWN]:
+        if keys[pygame.K_DOWN] or keys[pygame.K_s]:
             temp = self.y + PLAYER_VELOCITY
             if not ((detect_wall_collision(self.x, temp, walls)) or (detect_players_collision(self.x, temp, self.id, players))):
                 self.y = temp

@@ -3,7 +3,7 @@ import pygame
 import time
 import numpy as np
 
-MAP_SIZE = 2000 
+MAP_SIZE = 1000 
 BACKGROUND_COLOR = (161, 222, 100)
 
 WINDOW_WIDTH = 1000

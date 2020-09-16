@@ -1,7 +1,7 @@
 import pygame
 import numpy as np
 
-from Weapons import Pistol, MachineGun, ShotGun
+from Weapons import WINDOW_HEIGHT, Pistol, MachineGun, ShotGun
 
 PI = 3.1416
 
@@ -14,6 +14,16 @@ HAND_IMG = pygame.image.load("graphics/hands.png")
 PISTOL_IMG = pygame.image.load("graphics/pistol.png")
 MACHINEGUN_IMG = pygame.image.load("graphics/machinegun.png")
 SHOTGUN_IMG = pygame.image.load("graphics/shotgun.png")
+
+pygame.mixer.init()
+PISTOL_SOUND = pygame.mixer.Sound("sound/pistol.wav")
+MACHINEGUN_SOUND = pygame.mixer.Sound("sound/pistol.wav")
+SHOTGUN_SOUND = pygame.mixer.Sound("sound/pistol.wav")
+
+
+pygame.font.init()
+HUD_COLOR = (255, 255, 255)
+font = pygame.font.Font('freesansbold.ttf', 32)
 
 
 class Player():
@@ -55,6 +65,13 @@ class Player():
         x = self.x - (img.get_width() / 2)
         y = self.y - (img.get_height() / 2)        
         window.blit(img, (int(x - camera_offset[0]), int(y - camera_offset[1])))
+        
+    def display_hud(self, window):
+        hp = font.render('HP: ' + str(self.hp), True, HUD_COLOR) 
+        armor = font.render('ARMOR: ' + str(self.armour), True, HUD_COLOR) 
+        
+        window.blit(armor, (10, WINDOW_HEIGHT - 75))
+        window.blit(hp, (10, WINDOW_HEIGHT - 40))
             
     def move(self, players, walls, window, camera_offset):
         keys = pygame.key.get_pressed()
@@ -100,15 +117,32 @@ class Player():
                 
         # mouse section
         elif mouse_keys[0]:
-            self.fire()    
+            self.fire()  
+            
+    def hit(self, damage):
+        self.hp -= damage
         
     def fire(self):
         if self.equipped is not None:
             bullet = self.equipped.fire(self.x, self.y, self.angle)
             if bullet:
-                self.bullets.append(bullet)
-
-
+                if(type(bullet) in (list, tuple)):
+                    self.bullets += bullet
+                else:
+                    self.bullets.append(bullet)
+                
+                # sound effects
+                sound = None
+                if(type(self.equipped) is Pistol):
+                    sound = PISTOL_SOUND
+                elif(type(self.equipped) is MachineGun):
+                    sound = MACHINEGUN_SOUND
+                elif(type(self.equipped) is ShotGun):
+                    sound = SHOTGUN_SOUND
+                
+                sound.play()
+       
+                    
 def detect_players_collision(x, y, my_id, players):
     for player in players.values():
         if player.id == my_id:
@@ -121,21 +155,29 @@ def detect_players_collision(x, y, my_id, players):
 
 def detect_wall_collision(x, y, walls):
     for wall in walls:
-        if(line_collision(wall[0], wall[1], (x, y), PLAYER_SIZE - 1) is True):
+        if(line_collision(wall[0], wall[1], (x, y), PLAYER_SIZE - 1)):
             return True
         
     return False
 
 
-def detect_bullet_collision(player, bullets, players):
-    hits = 0
-    for bullet in bullets:
-        if(object_collision((bullet.x, bullet.y), (player.x, player.y), PLAYER_SIZE)):
-            bullet.kill()
-            hits += 1
-        
-    return hits
-        
+def detect_bullet_collision(players, walls):
+    for upper in players.values():
+        for index, bullet in enumerate(upper.bullets):
+            for player in players.values():
+                if upper == player:
+                    continue
+                if (object_collision((player.x, player.y), (bullet.x, bullet.y), PLAYER_SIZE + 5)):
+                    player.hit(bullet.damage)
+                    upper.bullets.remove(bullet)
+                    
+            for wall in walls:
+                if(line_collision(wall[0], wall[1], (bullet.x, bullet.y), PLAYER_SIZE)):
+                    try:
+                        upper.bullets.remove(bullet)
+                    except Exception:
+                        pass
+
 
 def object_collision(p1, p2, tollerance):
     distance = np.linalg.norm(np.array(p1) - np.array(p2))

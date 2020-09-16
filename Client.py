@@ -2,12 +2,8 @@ import sys
 import pygame
 import numpy as np
 from Network import Network
-from Weapons import Battle_field
-
+from Weapons import Battle_field, WINDOW_WIDTH, WINDOW_HEIGHT
 # constants
-
-WINDOW_WIDTH = 1000
-WINDOW_HEIGHT = 800
 
 #variables
 players = {}
@@ -15,12 +11,13 @@ battle_field = Battle_field()
 camera_offset = [0, 0]
 
 
-def redrawWindow(window):
+def redrawWindow(window, my_id):
     battle_field.draw(window, camera_offset)
     
     for player in players.values():
         player.draw(window, camera_offset)
         
+    players[my_id].display_hud(window)
     pygame.display.update()
     
 
@@ -65,9 +62,10 @@ def main():
                 delta_x = mouse_pos[0] - (WINDOW_WIDTH // 2)
                 delta_y = (WINDOW_HEIGHT // 2) - mouse_pos[1]
                 players[my_id].angle = np.arctan2(delta_x, delta_y)
-        
+                
         players[my_id].move(players, battle_field.walls, window, camera_offset)
-        redrawWindow(window)
+        
+        redrawWindow(window, my_id)
 
 
 if __name__ == "__main__":

@@ -6,6 +6,9 @@ import numpy as np
 MAP_SIZE = 2000 
 BACKGROUND_COLOR = (161, 222, 100)
 
+WINDOW_WIDTH = 1000
+WINDOW_HEIGHT = 800
+
 
 class Bullet():
     
@@ -87,6 +90,20 @@ class ShotGun(Gun):
     
     def __init__(self):
         super().__init__()
+        
+    def fire(self, x, y, angle):
+
+        if((time.time() - self.timer) >= self.FIRE_RATE) or self.timer == 0:
+            self.timer = time.time()
+            self.ammo -= 3
+            
+            bullets = []
+            bullets.append(Bullet(x, y, self.BULLET_SPEED, angle, self.BULLET_DAMAGE, self.BULLET_RANGE))
+            bullets.append(Bullet(x, y, self.BULLET_SPEED, angle + 0.1, self.BULLET_DAMAGE, self.BULLET_RANGE))
+            bullets.append(Bullet(x, y, self.BULLET_SPEED, angle - 0.1, self.BULLET_DAMAGE, self.BULLET_RANGE))
+            return bullets
+        else:
+            return None
         
         
 class Battle_field():

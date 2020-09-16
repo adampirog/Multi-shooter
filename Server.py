@@ -2,7 +2,7 @@ import socket
 import pickle
 import random
 import threading
-from Player import Player
+from Player import Player, detect_players_collision
 from Network import PACKAGE_SIZE
 
 
@@ -15,7 +15,18 @@ def add_new_player():
     
     with players_lock:
         new_id = len(players)
-        players[new_id] = (Player(new_id, random.randint(100, 400), random.randint(100, 400)))
+        if new_id % 2 == 0:
+            x, y = random.randint(840, 960), random.randint(40, 60)
+            if(detect_players_collision(x, y, new_id, players)):
+                while(detect_players_collision(x, y, new_id, players)):
+                    x, y = random.randint(840, 960), random.randint(40, 60)
+        else:
+            x, y = random.randint(40, 60), random.randint(840, 960)
+            if(detect_players_collision(x, y, new_id, players)):
+                while(detect_players_collision(x, y, new_id, players)):
+                    x, y = random.randint(840, 960), random.randint(40, 60)
+            
+        players[new_id] = Player(new_id, x, y)
         players_copy = players
         
     return new_id, players_copy

@@ -1,7 +1,7 @@
 import pygame
 import numpy as np
 
-from Weapons import WINDOW_HEIGHT, Pistol, MachineGun, ShotGun
+from Weapons import WINDOW_HEIGHT, WINDOW_WIDTH, Pistol, MachineGun, ShotGun
 
 PI = 3.1416
 
@@ -15,7 +15,9 @@ PISTOL_IMG = pygame.image.load("graphics/pistol.png")
 MACHINEGUN_IMG = pygame.image.load("graphics/machinegun.png")
 SHOTGUN_IMG = pygame.image.load("graphics/shotgun.png")
 
+
 pygame.mixer.init()
+EMPTY_SOUND = pygame.mixer.Sound("sound/empty.wav")
 PISTOL_SOUND = pygame.mixer.Sound("sound/pistol.wav")
 MACHINEGUN_SOUND = pygame.mixer.Sound("sound/pistol.wav")
 SHOTGUN_SOUND = pygame.mixer.Sound("sound/pistol.wav")
@@ -23,7 +25,7 @@ SHOTGUN_SOUND = pygame.mixer.Sound("sound/pistol.wav")
 
 pygame.font.init()
 HUD_COLOR = (255, 255, 255)
-font = pygame.font.Font('freesansbold.ttf', 32)
+font = pygame.font.Font('freesansbold.ttf', 23)
 
 
 class Player():
@@ -35,7 +37,7 @@ class Player():
         self.angle = 0
         
         self.hp = 100
-        self.armour = 0
+        self.armor = 0
         
         self.bullets = []
         self.equipment = [Pistol(), MachineGun(), ShotGun()]
@@ -68,10 +70,13 @@ class Player():
         
     def display_hud(self, window):
         hp = font.render('HP: ' + str(self.hp), True, HUD_COLOR) 
-        armor = font.render('ARMOR: ' + str(self.armour), True, HUD_COLOR) 
+        armor = font.render('ARMOR: ' + str(self.armor), True, HUD_COLOR)
+        if(self.equipped is not None):
+            ammo = font.render('AMMO: ' + str(self.equipped.ammo), True, HUD_COLOR) 
+            window.blit(ammo, (WINDOW_WIDTH - 120, WINDOW_HEIGHT - 30))
         
-        window.blit(armor, (10, WINDOW_HEIGHT - 75))
-        window.blit(hp, (10, WINDOW_HEIGHT - 40))
+        window.blit(armor, (7, WINDOW_HEIGHT - 30))
+        window.blit(hp, (7, WINDOW_HEIGHT - 55))
             
     def move(self, players, walls, window, camera_offset):
         keys = pygame.key.get_pressed()
@@ -126,6 +131,12 @@ class Player():
         if self.equipped is not None:
             bullet = self.equipped.fire(self.x, self.y, self.angle)
             if bullet:
+                
+                if self.equipped.ammo <= 0:
+                    self.equipped.ammo = 0
+                    EMPTY_SOUND.play()
+                    return
+            
                 if(type(bullet) in (list, tuple)):
                     self.bullets += bullet
                 else:
@@ -162,22 +173,24 @@ def detect_wall_collision(x, y, walls):
 
 
 def detect_bullet_collision(players, walls):
+    
     for upper in players.values():
-        for index, bullet in enumerate(upper.bullets):
+        to_removal = set()
+        for bullet in upper.bullets:
             for player in players.values():
                 if upper == player:
                     continue
                 if (object_collision((player.x, player.y), (bullet.x, bullet.y), PLAYER_SIZE + 5)):
                     player.hit(bullet.damage)
-                    upper.bullets.remove(bullet)
+                    to_removal.add(bullet)
                     
             for wall in walls:
-                if(line_collision(wall[0], wall[1], (bullet.x, bullet.y), PLAYER_SIZE)):
-                    try:
-                        upper.bullets.remove(bullet)
-                    except Exception:
-                        pass
-
+                if(line_collision(wall[0], wall[1], (bullet.x, bullet.y), 10)):
+                    to_removal.add(bullet)
+        
+        for item in to_removal:
+            upper.bullets.remove(item)
+                    
 
 def object_collision(p1, p2, tollerance):
     distance = np.linalg.norm(np.array(p1) - np.array(p2))
@@ -189,6 +202,11 @@ def object_collision(p1, p2, tollerance):
 
 # p1 and p2 create a line. Distance is calcullated to p3
 def line_collision(p1, p2, p3, tollerance):
+    
+    if(p3[1] >= p1[1] and p3[1] >= p2[1]) or (p3[1] <= p1[1] and p3[1] <= p2[1]):
+        if(p3[0] <= p1[0] and p3[0] <= p2[0]) or (p3[0] >= p1[0] and p3[0] >= p2[0]):
+            return False
+
     np1 = np.array(p1)
     np2 = np.array(p2)
     distance = np.linalg.norm(np.cross(np2 - np1, np1 - np.array(p3))) / np.linalg.norm(np2 - np1)

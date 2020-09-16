@@ -4,7 +4,6 @@ import numpy as np
 from Network import Network
 from Weapons import Battle_field, WINDOW_WIDTH, WINDOW_HEIGHT
 from Player import detect_bullet_collision
-# constants
 
 #variables
 players = {}

@@ -2,12 +2,14 @@ import socket
 import pickle
 import random
 import threading
-from Player import Player, detect_players_collision
+from Player import Player, SPAWN_AREAS, detect_players_collision
 from Network import PACKAGE_SIZE
 
 
 players = {}
 players_lock = threading.Lock()
+
+item_spawn_zones = []
 
 
 def add_new_player():
@@ -16,15 +18,15 @@ def add_new_player():
     with players_lock:
         new_id = len(players)
         if new_id % 2 == 0:
-            x, y = random.randint(840, 960), random.randint(40, 60)
+            x, y = random.randint(SPAWN_AREAS[0][0], SPAWN_AREAS[0][1]), random.randint(SPAWN_AREAS[1][0], SPAWN_AREAS[1][1])
             if(detect_players_collision(x, y, new_id, players)):
                 while(detect_players_collision(x, y, new_id, players)):
-                    x, y = random.randint(840, 960), random.randint(40, 60)
+                    x, y = random.randint(SPAWN_AREAS[0][0], SPAWN_AREAS[0][1]), random.randint(SPAWN_AREAS[1][0], SPAWN_AREAS[1][1])
         else:
-            x, y = random.randint(40, 60), random.randint(840, 960)
+            x, y = random.randint(SPAWN_AREAS[1][0], SPAWN_AREAS[1][1]), random.randint(SPAWN_AREAS[0][0], SPAWN_AREAS[0][1])
             if(detect_players_collision(x, y, new_id, players)):
                 while(detect_players_collision(x, y, new_id, players)):
-                    x, y = random.randint(840, 960), random.randint(40, 60)
+                    x, y = random.randint(SPAWN_AREAS[0][0], SPAWN_AREAS[0][1]), random.randint(SPAWN_AREAS[1][0], SPAWN_AREAS[1][1])
             
         players[new_id] = Player(new_id, x, y)
         players_copy = players
@@ -48,7 +50,7 @@ def client_thread_function(connection):
             
             with players_lock:
                 players[my_id] = data[1]
-                reply = players
+                reply = (players, item_spawn_zones)
                 
             connection.sendall(pickle.dumps(reply, protocol=pickle.HIGHEST_PROTOCOL))
         

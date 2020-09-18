@@ -9,11 +9,20 @@ BACKGROUND_COLOR = (161, 222, 100)
 WINDOW_WIDTH = 800
 WINDOW_HEIGHT = 600
 
+pygame.mixer.init()
+
+PISTOL_SOUND = pygame.mixer.Sound("sound/pistol.wav")
+MACHINEGUN_SOUND = pygame.mixer.Sound("sound/machinegun.wav")
+SHOTGUN_SOUND = pygame.mixer.Sound("sound/shotgun.wav")
+
+EMPTY_SOUND = pygame.mixer.Sound("sound/empty.wav")
+
 
 class Bullet():
     
-    def __init__(self, x, y, speed, angle, damage, range):
+    def __init__(self, x, y, id, speed, angle, damage, range):
         
+        self.id = id
         self.x, self.y = x, y
         self.start_x, self.start_y = x, y 
         
@@ -38,41 +47,36 @@ class Bullet():
         self.y -= dy
         
         self.traveled += np.linalg.norm(np.array([dx, dy]))
+
         
-        
-class Gun():
-    FIRE_RATE = 0
+class Pistol():
+    FIRE_RATE = 0.45
     
-    BULLET_SPEED = 0
-    BULLET_DAMAGE = 0
-    BULLET_RANGE = 0
+    BULLET_SPEED = 15
+    BULLET_DAMAGE = 6
+    BULLET_RANGE = 300
     
     def __init__(self):
         self.timer = 0
         self.ammo = 30
     
-    def fire(self, x, y, angle):
-
+    def fire(self, x, y, id, angle):
+        
         if((time.time() - self.timer) >= self.FIRE_RATE) or self.timer == 0:
             self.timer = time.time()
+            
+            if(self.ammo <= 0):
+                EMPTY_SOUND.play()
+                return None
+        
+            PISTOL_SOUND.play()
             self.ammo -= 1
-            return Bullet(x, y, self.BULLET_SPEED, angle, self.BULLET_DAMAGE, self.BULLET_RANGE)
+            return Bullet(x, y, id, self.BULLET_SPEED, angle, self.BULLET_DAMAGE, self.BULLET_RANGE)
         else:
             return None
         
         
-class Pistol(Gun):
-    FIRE_RATE = 0.45
-    
-    BULLET_SPEED = 15
-    BULLET_DAMAGE = 7
-    BULLET_RANGE = 300
-    
-    def __init__(self):
-        super().__init__()
-        
-        
-class MachineGun(Gun):
+class MachineGun():
     FIRE_RATE = 0.2
     
     BULLET_SPEED = 20
@@ -80,30 +84,53 @@ class MachineGun(Gun):
     BULLET_RANGE = 400
     
     def __init__(self):
-        super().__init__()
-        
-
-class ShotGun(Gun):
-    FIRE_RATE = 0.75
+        self.timer = 0
+        self.ammo = 30
     
-    BULLET_SPEED = 20
-    BULLET_DAMAGE = 5
-    BULLET_RANGE = 200
-    
-    def __init__(self):
-        super().__init__()
+    def fire(self, x, y, id, angle):
         
-    def fire(self, x, y, angle):
-
         if((time.time() - self.timer) >= self.FIRE_RATE) or self.timer == 0:
             self.timer = time.time()
             
+            if(self.ammo <= 0):
+                EMPTY_SOUND.play()
+                return None
+            
+            MACHINEGUN_SOUND.play()
+            self.ammo -= 1
+            return Bullet(x, y, id, self.BULLET_SPEED, angle, self.BULLET_DAMAGE, self.BULLET_RANGE)
+        else:
+            return None
+        
+
+class ShotGun():
+    FIRE_RATE = 1.2
+    
+    BULLET_SPEED = 20
+    BULLET_DAMAGE = 8
+    BULLET_RANGE = 200
+    
+    def __init__(self):
+        self.timer = 0
+        self.ammo = 30
+        
+    def fire(self, x, y, id, angle):
+
+        if((time.time() - self.timer) >= self.FIRE_RATE) or self.timer == 0:   
+            self.timer = time.time()
+            
+            if(self.ammo <= 0):
+                EMPTY_SOUND.play()
+                if(self.ammo < 0):
+                    self.ammo = 0
+                return None
+
+            SHOTGUN_SOUND.play()
+            
             bullets = []
-            bullets.append(Bullet(x, y, self.BULLET_SPEED, angle, self.BULLET_DAMAGE, self.BULLET_RANGE))
-            bullets.append(Bullet(x, y, self.BULLET_SPEED, angle + 0.1, self.BULLET_DAMAGE, self.BULLET_RANGE))
-            bullets.append(Bullet(x, y, self.BULLET_SPEED, angle - 0.1, self.BULLET_DAMAGE, self.BULLET_RANGE))
-            #bullets.append(Bullet(x, y, self.BULLET_SPEED, angle + 0.15, self.BULLET_DAMAGE, self.BULLET_RANGE))
-            #bullets.append(Bullet(x, y, self.BULLET_SPEED, angle - 0.15, self.BULLET_DAMAGE, self.BULLET_RANGE))
+            bullets.append(Bullet(x, y, id, self.BULLET_SPEED, angle, self.BULLET_DAMAGE, self.BULLET_RANGE))
+            bullets.append(Bullet(x, y, id, self.BULLET_SPEED, angle + 0.1, self.BULLET_DAMAGE, self.BULLET_RANGE))
+            bullets.append(Bullet(x, y, id, self.BULLET_SPEED, angle - 0.1, self.BULLET_DAMAGE, self.BULLET_RANGE))
             
             self.ammo -= len(bullets)
             return bullets
@@ -147,4 +174,4 @@ class Battle_field():
         for wall in self.walls:
             pygame.draw.line(window, (0, 0, 0), (wall[0][0] - camera_offset[0], wall[0][1] - camera_offset[1]), 
                              (wall[1][0] - camera_offset[0], wall[1][1] - camera_offset[1]), 5)
-        
+ 

@@ -1,4 +1,5 @@
 import pygame
+import random
 import numpy as np
 
 from Weapons import WINDOW_HEIGHT, WINDOW_WIDTH, Pistol, MachineGun, ShotGun
@@ -8,7 +9,7 @@ PI = 3.1416
 PLAYER_SIZE = 20
 PLAYER_VELOCITY = 5
 
-PLAYER_COLOR = (255, 219, 172)
+SPAWN_AREAS = ((840, 960), (40, 60))
 
 HAND_IMG = pygame.image.load("graphics/hands.png")
 PISTOL_IMG = pygame.image.load("graphics/pistol.png")
@@ -16,16 +17,10 @@ MACHINEGUN_IMG = pygame.image.load("graphics/machinegun.png")
 SHOTGUN_IMG = pygame.image.load("graphics/shotgun.png")
 
 
-pygame.mixer.init()
-EMPTY_SOUND = pygame.mixer.Sound("sound/empty.wav")
-PISTOL_SOUND = pygame.mixer.Sound("sound/pistol.wav")
-MACHINEGUN_SOUND = pygame.mixer.Sound("sound/pistol.wav")
-SHOTGUN_SOUND = pygame.mixer.Sound("sound/pistol.wav")
-
-
 pygame.font.init()
 HUD_COLOR = (255, 255, 255)
-font = pygame.font.Font('freesansbold.ttf', 23)
+HUD_FONT = pygame.font.Font('freesansbold.ttf', 24)
+SCOREBOARD_FONT = pygame.font.Font('freesansbold.ttf', 30)
 
 
 class Player():
@@ -33,6 +28,10 @@ class Player():
         
         self.id = Id
         self.x, self.y = x, y
+        
+        self.nick = "Player" + str(Id)
+        self.kills = 0
+        self.deaths = 0
 
         self.angle = 0
         
@@ -41,7 +40,7 @@ class Player():
         
         self.bullets = []
         self.equipment = [Pistol(), MachineGun(), ShotGun()]
-        self.equipped = None
+        self.equipped = self.equipment[0]
         
     def draw(self, window, camera_offset):
         
@@ -69,16 +68,16 @@ class Player():
         window.blit(img, (int(x - camera_offset[0]), int(y - camera_offset[1])))
         
     def display_hud(self, window):
-        hp = font.render('HP: ' + str(self.hp), True, HUD_COLOR) 
-        armor = font.render('ARMOR: ' + str(self.armor), True, HUD_COLOR)
+        hp = HUD_FONT.render('HP: ' + str(self.hp), True, HUD_COLOR) 
+        armor = HUD_FONT.render('ARMOR: ' + str(self.armor), True, HUD_COLOR)
         if(self.equipped is not None):
-            ammo = font.render('AMMO: ' + str(self.equipped.ammo), True, HUD_COLOR) 
-            window.blit(ammo, (WINDOW_WIDTH - 120, WINDOW_HEIGHT - 30))
+            ammo = HUD_FONT.render('AMMO: ' + str(self.equipped.ammo), True, HUD_COLOR) 
+            window.blit(ammo, (WINDOW_WIDTH - 150, WINDOW_HEIGHT - 30))
         
         window.blit(armor, (7, WINDOW_HEIGHT - 30))
         window.blit(hp, (7, WINDOW_HEIGHT - 55))
             
-    def move(self, players, walls, window, camera_offset):
+    def move(self, players, walls, camera_offset):
         keys = pygame.key.get_pressed()
         mouse_keys = pygame.mouse.get_pressed()
         
@@ -124,34 +123,36 @@ class Player():
         elif mouse_keys[0]:
             self.fire()  
             
-    def hit(self, damage):
+    def hit(self, damage, bullet_id):
         self.hp -= damage
+        
+        if(self.hp <= 0):
+            
+            self.hp = 100
+            self.armor = 0
+            
+            self.deaths += 1
+            self.equipment = [Pistol(), MachineGun(), ShotGun()]
+            
+            if self.id % 2 == 0:
+                self.x, self.y = random.randint(SPAWN_AREAS[0][0], SPAWN_AREAS[0][1]), random.randint(SPAWN_AREAS[1][0], SPAWN_AREAS[1][1])
+
+            else:
+                self.x, self.y = random.randint(SPAWN_AREAS[1][0], SPAWN_AREAS[1][1]), random.randint(SPAWN_AREAS[0][0], SPAWN_AREAS[0][1])
+                
+            return bullet_id
+        else:
+            return -1
         
     def fire(self):
         if self.equipped is not None:
-            bullet = self.equipped.fire(self.x, self.y, self.angle)
-            if bullet:
-                
-                if self.equipped.ammo <= 0:
-                    self.equipped.ammo = 0
-                    EMPTY_SOUND.play()
-                    return
+            bullet = self.equipped.fire(self.x, self.y, self.id, self.angle)
             
+            if bullet:
                 if(type(bullet) in (list, tuple)):
                     self.bullets += bullet
                 else:
                     self.bullets.append(bullet)
-                
-                # sound effects
-                sound = None
-                if(type(self.equipped) is Pistol):
-                    sound = PISTOL_SOUND
-                elif(type(self.equipped) is MachineGun):
-                    sound = MACHINEGUN_SOUND
-                elif(type(self.equipped) is ShotGun):
-                    sound = SHOTGUN_SOUND
-                
-                sound.play()
        
                     
 def detect_players_collision(x, y, my_id, players):
@@ -181,8 +182,10 @@ def detect_bullet_collision(players, walls):
                 if upper == player:
                     continue
                 if (object_collision((player.x, player.y), (bullet.x, bullet.y), PLAYER_SIZE + 5)):
-                    player.hit(bullet.damage)
+                    killer = player.hit(bullet.damage, bullet.id)
                     to_removal.add(bullet)
+                    if(killer > -1):
+                        upper.kills += 1 
                     
             for wall in walls:
                 if(line_collision(wall[0], wall[1], (bullet.x, bullet.y), 10)):

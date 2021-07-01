@@ -58,7 +58,7 @@ class Pistol():
     
     def __init__(self):
         self.timer = 0
-        self.ammo = 30
+        self.ammo = 50
     
     def fire(self, x, y, id, angle):
         

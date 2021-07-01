@@ -3,9 +3,10 @@ import pygame
 import numpy as np
 from Network import Network
 from Weapons import Battle_field, WINDOW_WIDTH, WINDOW_HEIGHT
-from Player import detect_bullet_collision, SCOREBOARD_FONT, HUD_COLOR
+from Player import PLAYER_SIZE, detect_bullet_collision, SCOREBOARD_FONT, HUD_COLOR, object_collision
 
 #variables
+my_id = -1
 players = {}
 item_spawn_zones = None
 
@@ -13,12 +14,42 @@ battle_field = Battle_field()
 camera_offset = [0, 0]
 
 
+def spawn_items(window):
+    global item_spawn_zones
+    for item in item_spawn_zones:
+        for player in players.values():
+            if(object_collision((item[1], item[2]), (player.x, player.y), (PLAYER_SIZE * 2) - 3)):
+                if(item[0] == 3):
+                    if(player.armor != 100):
+                        player.armor += 15
+                        player.armor %= 100
+                elif(item[0] == 0):
+                    player.equipment[0].ammo += 15
+                elif(item[0] == 1):
+                    player.equipment[1].ammo += 15
+                elif(item[0] == 2):
+                    player.equipment[2].ammo += 15
+                    
+                item[0] = None
+            
+        for item in item_spawn_zones:
+            if(item[0] == 0):
+                pygame.draw.circle(window, (255, 0, 0), (item[1] - camera_offset[0], item[2] - camera_offset[1]), PLAYER_SIZE)
+            elif(item[0] == 1):
+                pygame.draw.circle(window, (0, 255, 0), (item[1] - camera_offset[0], item[2] - camera_offset[1]), PLAYER_SIZE)
+            elif(item[0] == 2):
+                pygame.draw.circle(window, (0, 0, 255), (item[1] - camera_offset[0], item[2] - camera_offset[1]), PLAYER_SIZE)
+            elif(item[0] == 3):
+                pygame.draw.circle(window, (255, 255, 255), (item[1] - camera_offset[0], item[2] - camera_offset[1]), PLAYER_SIZE)
+        
+
 def redrawWindow(window, my_id, _display_scoreboard):
     battle_field.draw(window, camera_offset)
     
     screen_center = window.get_rect().center
     screen_center = (screen_center[0], screen_center[1] // 3)
     
+    spawn_items(window)
     for index, player in enumerate(players.values()):
         player.draw(window, camera_offset)
         
@@ -81,13 +112,14 @@ def get_nick(screen):
         
 
 def main():
-    global players, battle_field, camera_offset
+    global players, my_id, battle_field, item_spawn_zones, camera_offset
     
     run = True
     _display_scoreboard = False
     
     pygame.init()
     window = pygame.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT))
+    pygame.display.set_caption("Shooter")
     nick = get_nick(window)
     
     network = Network()
@@ -99,10 +131,10 @@ def main():
     
     my_id = data[0]
     players = data[1]
+    item_spawn_zones = data[2]
     players[my_id].nick = nick
     
     clock = pygame.time.Clock()
-    pygame.display.set_caption("Client")
     pygame.mouse.set_cursor(*pygame.cursors.broken_x)
     
     mouse_pos = pygame.mouse.get_pos()
@@ -112,7 +144,7 @@ def main():
 
     while run:
         clock.tick(30)
-        players, item_spawn_zones = network.send((my_id, players[my_id]))
+        players, item_spawn_zones = network.send((my_id, players[my_id], item_spawn_zones))
             
         camera_offset[0] += (players[my_id].x - camera_offset[0] - (WINDOW_WIDTH // 2))  # // 15
         camera_offset[1] += (players[my_id].y - camera_offset[1] - (WINDOW_HEIGHT // 2))  # // 15

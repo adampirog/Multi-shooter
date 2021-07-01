@@ -9,7 +9,7 @@ class Network:
         self.client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.client.settimeout(7)
         
-        self.server = "192.168.1.25"
+        self.server = "192.168.1.16"
         self.port = 5555
         self.addr = (self.server, self.port)
     
